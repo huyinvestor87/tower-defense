@@ -10,7 +10,16 @@ const towerTypes = [
   { id:'arc', name:'Arc Node', icon:'ϟ', cost:280, damage:28, range:125, rate:.9, color:'#5bf2bb', desc:'Chains between targets' }
 ];
 const state = { credits:500, lives:20, wave:0, speed:1, paused:false, running:false, placing:null, selected:null, enemies:[], towers:[], shots:[], spawned:0, total:0, nextSpawn:0, audio:true };
-let view={w:0,h:0,dpr:1}, last=performance.now(), raf, toastTimer, audioContext;
+let view={w:0,h:0,dpr:1}, last=performance.now(), raf, toastTimer, audioContext, musicGain, musicClock=0, musicStep=0;
+
+// Ambient background loop: Am–F–C–G arpeggio, 8 steps per chord (rests add breathing room)
+const MUSIC_STEP=.42;
+const musicPattern=[
+  220,261.63,329.63,261.63,220,329.63,261.63,0,       // Am
+  174.61,220,261.63,220,174.61,261.63,220,0,          // F
+  261.63,329.63,392,329.63,261.63,392,329.63,0,       // C
+  196,246.94,293.66,246.94,196,293.66,246.94,0        // G
+];
 
 function shop(){
   $('shop').innerHTML=towerTypes.map(t=>`<button class="tower-card" data-tower="${t.id}"><span class="tower-icon" style="color:${t.color}">${t.icon}</span><span><b>${t.name}</b><small>${t.desc}</small></span><span class="cost">◆ ${t.cost}</span></button>`).join('');
@@ -68,6 +77,7 @@ $('abilityBtn').onclick=()=>{const t=state.selected;if(!t||t.ability>0)return;t.
 function startWave(){if(state.running)return;state.wave++;state.running=true;state.spawned=0;state.total=7+state.wave*3;state.nextSpawn=.1;updateHud();$('waveBtn').classList.add('running');$('waveState').textContent=`WAVE ${state.wave} IN PROGRESS`;resumeAudio();tone(330,.1)}
 function spawn(){const hp=45+state.wave*18;state.enemies.push({progress:0,hp,maxHp:hp,speed:.038+state.wave*.0015,radius:9+Math.min(state.wave,8)*.35,color:state.wave%5===0?'#b992ff':'#ff6b7f'});state.spawned++}
 function update(dt){if(state.paused)return;
+  if(state.audio){musicClock+=dt;if(musicClock>=MUSIC_STEP){musicClock-=MUSIC_STEP;playMusicNote()}}
   if(state.running&&state.spawned<state.total){state.nextSpawn-=dt;if(state.nextSpawn<=0){spawn();state.nextSpawn=.65}}
   for(const e of state.enemies)e.progress+=e.speed*dt;
   for(const e of [...state.enemies])if(e.progress>=1){state.enemies.splice(state.enemies.indexOf(e),1);state.lives--;tone(100,.08);if(state.lives<=0){state.lives=20;state.credits=Math.max(200,state.credits);state.running=false;state.enemies=[];toast('Core restored — regroup and try again')}}
@@ -80,8 +90,9 @@ function loop(now){const dt=Math.min((now-last)/1000,.05)*state.speed;last=now;u
 function updateHud(){$('credits').textContent=state.credits;$('lives').textContent=state.lives;$('wave').textContent=state.wave;const remaining=state.enemies.length+(state.total-state.spawned);$('enemyCount').textContent=state.running?`${remaining} threats remaining`:'Ready for deployment';$('waveProgress').style.width=state.running?`${100*(state.spawned-state.enemies.length*.3)/state.total}%`:'0%';if(state.selected){const sec=Math.ceil(state.selected.ability);$('abilityStatus').textContent=sec?`${sec}s cooldown`:'Ready';$('abilityBtn').classList.toggle('cooldown',!!sec)}}
 
 function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),1800)}
-function resumeAudio(){if(!state.audio)return;if(!audioContext)audioContext=new (window.AudioContext||window.webkitAudioContext)();if(audioContext.state==='suspended')audioContext.resume()}
+function resumeAudio(){if(!state.audio)return;if(!audioContext){audioContext=new (window.AudioContext||window.webkitAudioContext)();musicGain=audioContext.createGain();musicGain.gain.value=.05;musicGain.connect(audioContext.destination)}if(audioContext.state==='suspended')audioContext.resume()}
 function tone(freq,duration){if(!state.audio)return;resumeAudio();if(!audioContext)return;const o=audioContext.createOscillator(),g=audioContext.createGain();o.frequency.value=freq;o.type='sine';g.gain.setValueAtTime(.045,audioContext.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioContext.currentTime+duration);o.connect(g).connect(audioContext.destination);o.start();o.stop(audioContext.currentTime+duration)}
+function playMusicNote(){if(!audioContext)return;const freq=musicPattern[musicStep%musicPattern.length];musicStep++;if(!freq)return;const t=audioContext.currentTime,tail=MUSIC_STEP*1.8,o=audioContext.createOscillator(),g=audioContext.createGain(),f=audioContext.createBiquadFilter();o.type='triangle';o.frequency.value=freq;f.type='lowpass';f.frequency.value=900;f.Q.value=.7;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(1,t+.05);g.gain.exponentialRampToValueAtTime(.001,t+tail);o.connect(f).connect(g).connect(musicGain);o.start(t);o.stop(t+tail+.05)}
 function saveGame(){try{localStorage.setItem('aegis-grid-save',JSON.stringify({credits:state.credits,lives:state.lives,wave:state.wave,towers:state.towers.map(({x,y,...t})=>({...t,x:x/view.w,y:y/view.h}))}));toast('Progress saved')}catch{toast('Storage unavailable') }}
 function loadGame(){try{const d=JSON.parse(localStorage.getItem('aegis-grid-save'));if(!d)return;Object.assign(state,{credits:d.credits,lives:d.lives,wave:d.wave});requestAnimationFrame(()=>{state.towers=d.towers.map(t=>({...t,x:t.x*view.w,y:t.y*view.h}));updateHud()})}catch{localStorage.removeItem('aegis-grid-save')}}
 $('waveBtn').onclick=startWave;$('saveBtn').onclick=saveGame;$('pauseBtn').onclick=()=>{state.paused=!state.paused;$('pauseBtn').textContent=state.paused?'▶':'Ⅱ';toast(state.paused?'Game paused':'Game resumed')};
