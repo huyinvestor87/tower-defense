@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#07111f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Aegis Grid</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="app">
+    <header class="topbar glass">
+      <div class="brand"><span class="brand-mark">AG</span><span><b>AEGIS GRID</b><small>SECTOR 07</small></span></div>
+      <div class="resources" aria-label="Game resources">
+        <div><span class="resource-icon credits">◆</span><span id="credits">500</span><small>CREDITS</small></div>
+        <div><span class="resource-icon lives">♥</span><span id="lives">20</span><small>CORE</small></div>
+        <div><span class="resource-icon wave">◈</span><span id="wave">0</span><small>WAVE</small></div>
+      </div>
+      <div class="top-actions">
+        <button id="audioBtn" class="icon-btn" aria-label="Toggle audio">♫</button>
+        <button id="fullscreenBtn" class="icon-btn" aria-label="Enter fullscreen">⛶</button>
+        <button id="saveBtn" class="icon-btn" aria-label="Save game">▣</button>
+        <button id="pauseBtn" class="icon-btn" aria-label="Pause game">Ⅱ</button>
+      </div>
+    </header>
+
+    <section id="battlefield" aria-label="Game battlefield">
+      <canvas id="gameCanvas"></canvas>
+      <div class="objective glass"><span class="pulse"></span><span><small>OBJECTIVE</small><b>Protect the core</b></span></div>
+      <div id="toast" role="status" aria-live="polite"></div>
+      <button id="cancelPlacement" class="cancel-placement" hidden>Cancel placement</button>
+    </section>
+
+    <aside id="towerPanel" class="side-panel glass" aria-label="Tower controls">
+      <div class="panel-handle"></div>
+      <div class="panel-heading"><span><small id="panelEyebrow">ARSENAL</small><b id="panelTitle">Deploy a tower</b></span><button id="closePanel" aria-label="Close panel">×</button></div>
+      <div id="shop" class="tower-shop"></div>
+      <div id="selectedTower" class="tower-details" hidden>
+        <div class="tower-identity"><span id="selectedIcon"></span><div><b id="selectedName"></b><small id="selectedLevel"></small></div></div>
+        <div class="stats"><div><span>Damage</span><b id="statDamage"></b></div><div><span>Range</span><b id="statRange"></b></div><div><span>Rate</span><b id="statRate"></b></div></div>
+        <label class="targeting">Targeting<select id="targetMode"><option>First</option><option>Strong</option><option>Close</option></select></label>
+        <button id="abilityBtn" class="ability-btn"><span>✦</span><span><b>Overcharge</b><small id="abilityStatus">Ready</small></span></button>
+        <div class="tower-actions"><button id="sellBtn">Sell <span id="sellValue"></span></button><button id="upgradeBtn">Upgrade <span id="upgradeCost"></span></button></div>
+      </div>
+    </aside>
+
+    <footer class="wavebar glass">
+      <button id="arsenalBtn" class="arsenal-btn"><span>⌃</span> Arsenal</button>
+      <div class="wave-info"><span id="waveState">SECTOR SECURE</span><div class="progress"><i id="waveProgress"></i></div><small id="enemyCount">Ready for deployment</small></div>
+      <div class="speed-control" aria-label="Game speed"><button data-speed="1" class="active">1×</button><button data-speed="2">2×</button></div>
+      <button id="waveBtn" class="wave-btn"><span>▶</span><span><b>START WAVE</b><small>+100 early bonus</small></span></button>
+    </footer>
+  </main>
+  <div id="rotatePrompt"><div>↻</div><b>Rotate for command view</b><span>Landscape gives your battlefield more room.</span></div>
+  <script type="module" src="game.js"></script>
+</body>
+</html>
